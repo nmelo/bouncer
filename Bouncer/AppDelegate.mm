@@ -23,9 +23,7 @@
 	// THIS CODE REMOVES THE STARTUP FLICKER
 	//
 	// Uncomment the following code if you Application only supports landscape mode
-	//
-#if GAME_AUTOROTATION == kGameAutorotationUIViewController
-	
+	//	
 	//	CC_ENABLE_DEFAULT_GL_STATES();
 	//	CCDirector *director = [CCDirector sharedDirector];
 	//	CGSize size = [director winSize];
@@ -36,7 +34,6 @@
 	//	[[director openGLView] swapBuffers];
 	//	CC_ENABLE_DEFAULT_GL_STATES();
 	
-#endif // GAME_AUTOROTATION == kGameAutorotationUIViewController	
 }
 
 - (void) applicationDidFinishLaunching:(UIApplication*)application
@@ -82,13 +79,7 @@
 	// IMPORTANT:
 	// By default, this template only supports Landscape orientations.
 	// Edit the RootViewController.m file to edit the supported orientations.
-	//
-#if GAME_AUTOROTATION == kGameAutorotationUIViewController
-	[director setDeviceOrientation:kCCDeviceOrientationPortrait];
-#else
-	[director setDeviceOrientation:kCCDeviceOrientationLandscapeLeft];
-#endif
-	
+	//	
 	[director setAnimationInterval:1.0/60];
 	[director setDisplayFPS:YES];
 	

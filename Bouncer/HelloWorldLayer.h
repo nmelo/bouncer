@@ -17,6 +17,7 @@
 {
 	b2World* world;
 	GLESDebugDraw *m_debugDraw;
+    CCSprite *selSprite;
 }
 
 // returns a CCScene that contains the HelloWorldLayer as the only child

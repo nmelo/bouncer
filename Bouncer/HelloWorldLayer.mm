@@ -77,10 +77,6 @@ enum {
 		
 		uint32 flags = 0;
 		flags += b2DebugDraw::e_shapeBit;
-//		flags += b2DebugDraw::e_jointBit;
-//		flags += b2DebugDraw::e_aabbBit;
-//		flags += b2DebugDraw::e_pairBit;
-//		flags += b2DebugDraw::e_centerOfMassBit;
 		m_debugDraw->SetFlags(flags);		
 		
 		
@@ -113,28 +109,31 @@ enum {
 		groundBody->CreateFixture(&groundBox,0);
 		
 		
-		//Set up sprite
+		//Set up sprites
 		
-		CCSpriteBatchNode *batch = [CCSpriteBatchNode batchNodeWithFile:@"blocks.png" capacity:150];
+		CCSpriteBatchNode *batch = [CCSpriteBatchNode batchNodeWithFile:@"ball.png" capacity:150];
 		[self addChild:batch z:0 tag:kTagBatchNode];
 		
-		[self addNewSpriteWithCoords:ccp(screenSize.width/2, screenSize.height/2)];
-		
-		CCLabelTTF *label = [CCLabelTTF labelWithString:@"Tap screen" fontName:@"Marker Felt" fontSize:32];
-		[self addChild:label z:0];
-		[label setColor:ccc3(0,0,255)];
-		label.position = ccp( screenSize.width/2, screenSize.height-50);
-		
+        [self addNewSpriteWithCoords:ccp(140,315)];
+
+        
+		[self addNewSpriteWithCoords:ccp(140,114)];
+        [self addNewSpriteWithCoords:ccp(112,82)];
+        [self addNewSpriteWithCoords:ccp(165,81)];
+        [self addNewSpriteWithCoords:ccp(92,49)];
+        [self addNewSpriteWithCoords:ccp(140,49)];
+        [self addNewSpriteWithCoords:ccp(188,49)];
+
 		[self schedule: @selector(tick:)];
+        
+        [[CCTouchDispatcher sharedDispatcher] addTargetedDelegate:self priority:0 swallowsTouches:YES];
+
 	}
 	return self;
 }
 
 -(void) draw
 {
-	// Default GL states: GL_TEXTURE_2D, GL_VERTEX_ARRAY, GL_COLOR_ARRAY, GL_TEXTURE_COORD_ARRAY
-	// Needed states:  GL_VERTEX_ARRAY, 
-	// Unneeded states: GL_TEXTURE_2D, GL_COLOR_ARRAY, GL_TEXTURE_COORD_ARRAY
 	glDisable(GL_TEXTURE_2D);
 	glDisableClientState(GL_COLOR_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -153,11 +152,7 @@ enum {
 	CCLOG(@"Add sprite %0.2f x %02.f",p.x,p.y);
 	CCSpriteBatchNode *batch = (CCSpriteBatchNode*) [self getChildByTag:kTagBatchNode];
 	
-	//We have a 64x64 sprite sheet with 4 different 32x32 images.  The following code is
-	//just randomly picking one of the images
-	int idx = (CCRANDOM_0_1() > .5 ? 0:1);
-	int idy = (CCRANDOM_0_1() > .5 ? 0:1);
-	CCSprite *sprite = [CCSprite spriteWithBatchNode:batch rect:CGRectMake(32 * idx,32 * idy,32,32)];
+	CCSprite *sprite = [CCSprite spriteWithBatchNode:batch rect:CGRectMake(0,0,32,32)];
 	[batch addChild:sprite];
 	
 	sprite.position = ccp( p.x, p.y);
@@ -171,14 +166,15 @@ enum {
 	bodyDef.userData = sprite;
 	b2Body *body = world->CreateBody(&bodyDef);
 	
-	// Define another box shape for our dynamic body.
-	b2PolygonShape dynamicBox;
-	dynamicBox.SetAsBox(.5f, .5f);//These are mid points for our 1m box
+	// Define another circle shape for our dynamic body.
+	b2CircleShape dynamicBall;
+	dynamicBall.m_radius = 16.0/PTM_RATIO;
 	
 	// Define the dynamic body fixture.
 	b2FixtureDef fixtureDef;
-	fixtureDef.shape = &dynamicBox;	
+	fixtureDef.shape = &dynamicBall;	
 	fixtureDef.density = 1.0f;
+    fixtureDef.restitution = 0.7f;
 	fixtureDef.friction = 0.3f;
 	body->CreateFixture(&fixtureDef);
 }
@@ -212,7 +208,7 @@ enum {
 	}
 }
 
-- (void)ccTouchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+/*- (void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	//Add a new body/atlas sprite at the touched location
 	for( UITouch *touch in touches ) {
@@ -220,8 +216,65 @@ enum {
 		
 		location = [[CCDirector sharedDirector] convertToGL: location];
 		
-		[self addNewSpriteWithCoords: location];
+        CCSpriteBatchNode *batch = (CCSpriteBatchNode*) [self getChildByTag:kTagBatchNode];
+        CCSprite *particularSprite = [[batch.descendants getNSArray] objectAtIndex:0];
+        
+        CGRect particularSpriteRect = CGRectMake(particularSprite.position.x, particularSprite.position.y, particularSprite.contentSize.width, particularSprite.contentSize.height);
+        if(CGRectContainsPoint(particularSpriteRect, location)) {
+            CCAction *action = [CCMoveTo actionWithDuration:1 position: CGPointMake(0, 0)];
+            [particularSprite runAction:action];
+        }
+        
 	}
+}*/
+
+- (void)selectSpriteForTouch:(CGPoint)touchLocation {
+    CCSpriteBatchNode *batch = (CCSpriteBatchNode*) [self getChildByTag:kTagBatchNode];
+    
+    CCSprite * newSprite = nil;
+    for (CCSprite *sprite in [batch.descendants getNSArray]) {
+        if (CGRectContainsPoint(sprite.boundingBox, touchLocation)) {            
+            newSprite = sprite;
+            break;
+        }
+    }    
+    if (newSprite != selSprite) {
+        [selSprite stopAllActions];
+        [selSprite runAction:[CCRotateTo actionWithDuration:0.1 angle:0]];
+        CCRotateTo * rotLeft = [CCRotateBy actionWithDuration:0.1 angle:-4.0];
+        CCRotateTo * rotCenter = [CCRotateBy actionWithDuration:0.1 angle:0.0];
+        CCRotateTo * rotRight = [CCRotateBy actionWithDuration:0.1 angle:4.0];
+        CCSequence * rotSeq = [CCSequence actions:rotLeft, rotCenter, rotRight, rotCenter, nil];
+        [newSprite runAction:[CCRepeatForever actionWithAction:rotSeq]];            
+        selSprite = newSprite;
+    }
+}
+
+- (BOOL)ccTouchBegan:(UITouch *)touch withEvent:(UIEvent *)event {    
+    CGPoint touchLocation = [self convertTouchToNodeSpace:touch];
+    [self selectSpriteForTouch:touchLocation];      
+    return TRUE;    
+}
+
+- (void)panForTranslation:(CGPoint)translation {    
+    CCSpriteBatchNode *batch = (CCSpriteBatchNode*) [self getChildByTag:kTagBatchNode];
+    selSprite = (CCSprite*)[batch getChildByTag:selSprite.tag];
+    
+    if (selSprite) {
+        CGPoint newPos = ccpAdd(selSprite.position, translation);
+        selSprite.position = newPos;
+    }
+}
+
+- (void)ccTouchMoved:(UITouch *)touch withEvent:(UIEvent *)event {       
+    CGPoint touchLocation = [self convertTouchToNodeSpace:touch];
+    
+    CGPoint oldTouchLocation = [touch previousLocationInView:touch.view];
+    oldTouchLocation = [[CCDirector sharedDirector] convertToGL:oldTouchLocation];
+    oldTouchLocation = [self convertToNodeSpace:oldTouchLocation];
+    
+    CGPoint translation = ccpSub(touchLocation, oldTouchLocation);    
+    [self panForTranslation:translation];    
 }
 
 - (void)accelerometer:(UIAccelerometer*)accelerometer didAccelerate:(UIAcceleration*)acceleration
@@ -239,7 +292,7 @@ enum {
 	
 	// accelerometer values are in "Portrait" mode. Change them to Landscape left
 	// multiply the gravity by 10
-	b2Vec2 gravity( -accelY * 10, accelX * 10);
+	b2Vec2 gravity( -accelX * 10, accelY * 10);
 	
 	world->SetGravity( gravity );
 }
